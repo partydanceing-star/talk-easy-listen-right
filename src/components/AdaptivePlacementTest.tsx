@@ -30,9 +30,14 @@ const AdaptivePlacementTest = () => {
   const [hasRecorded, setHasRecorded] = useState(false);
   const [userLevel, setUserLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
   const [responses, setResponses] = useState<UserResponse[]>([]);
-  const [elevenLabsKey, setElevenLabsKey] = useState("");
-  const [showKeyInput, setShowKeyInput] = useState(true);
+  const [elevenLabsKey, setElevenLabsKey] = useState(() => {
+    return localStorage.getItem('langsy_elevenlabs_key') || "";
+  });
+  const [showKeyInput, setShowKeyInput] = useState(() => {
+    return !localStorage.getItem('langsy_elevenlabs_key');
+  });
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [recordedAudio, setRecordedAudio] = useState<string | null>(null);
   
   // Recording refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -59,6 +64,18 @@ const AdaptivePlacementTest = () => {
       text: "¿Qué te gusta hacer en tu tiempo libre?",
       expectedLength: 15,
     },
+    {
+      id: "b4",
+      level: 'beginner',
+      text: "¿Cuál es tu comida favorita y por qué?",
+      expectedLength: 12,
+    },
+    {
+      id: "b5",
+      level: 'beginner',
+      text: "Describe tu día típico desde que te levantas hasta que te acuestas.",
+      expectedLength: 20,
+    },
     // Intermediate questions
     {
       id: "i1",
@@ -76,6 +93,18 @@ const AdaptivePlacementTest = () => {
       id: "i3",
       level: 'intermediate',
       text: "Describe una tradición importante de tu cultura.",
+      expectedLength: 40,
+    },
+    {
+      id: "i4",
+      level: 'intermediate',
+      text: "¿Cómo ha cambiado tu ciudad en los últimos años? ¿Te gustan estos cambios?",
+      expectedLength: 35,
+    },
+    {
+      id: "i5",
+      level: 'intermediate',
+      text: "Explica un problema que hayas tenido que resolver recientemente y cómo lo solucionaste.",
       expectedLength: 40,
     },
     // Advanced questions
@@ -96,6 +125,18 @@ const AdaptivePlacementTest = () => {
       level: 'advanced',
       text: "Compara las ventajas y desventajas de vivir en una ciudad grande versus un pueblo pequeño.",
       expectedLength: 75,
+    },
+    {
+      id: "a4",
+      level: 'advanced',
+      text: "Analiza el impacto del cambio climático en tu región y propón soluciones concretas que podrían implementarse a nivel local.",
+      expectedLength: 80,
+    },
+    {
+      id: "a5",
+      level: 'advanced',
+      text: "Discute el papel de las redes sociales en la formación de la opinión pública y su influencia en la democracia moderna.",
+      expectedLength: 85,
     }
   ];
 
@@ -123,11 +164,11 @@ const AdaptivePlacementTest = () => {
   };
 
   const getCurrentQuestions = () => {
-    return questionBank.slice(0, Math.min(responses.length + 1, 5));
+    return questionBank.slice(0, Math.min(responses.length + 1, 8));
   };
 
   const questions = getAdaptiveQuestions();
-  const progress = ((currentQuestion + 1) / Math.min(questions.length, 5)) * 100;
+  const progress = ((currentQuestion + 1) / Math.min(questions.length, 8)) * 100;
 
   // Text to speech using ElevenLabs
   const speakText = async (text: string) => {
@@ -216,6 +257,9 @@ const AdaptivePlacementTest = () => {
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setRecordedAudio(audioUrl);
+        
         const duration = (Date.now() - recordingStartTime.current) / 1000;
         
         // Simple heuristic for fluency based on duration vs expected
@@ -271,6 +315,7 @@ const AdaptivePlacementTest = () => {
       setCurrentQuestion(currentQuestion + 1);
       setHasRecorded(false);
       setIsRecording(false);
+      setRecordedAudio(null);
     } else {
       // Test complete - determine final level
       const avgFluency = responses.reduce((sum, r) => sum + r.fluency, 0) / responses.length;
@@ -280,6 +325,16 @@ const AdaptivePlacementTest = () => {
       else if (avgFluency >= 3) finalLevel = 'intermediate';
       
       toast.success(`Test complete! Your level: ${finalLevel.toUpperCase()}`);
+    }
+  };
+
+  const playRecordedAudio = () => {
+    if (recordedAudio) {
+      const audio = new Audio(recordedAudio);
+      audio.play().catch(error => {
+        console.error('Error playing recorded audio:', error);
+        toast.error("Error playing recorded audio");
+      });
     }
   };
 
@@ -317,7 +372,10 @@ const AdaptivePlacementTest = () => {
             </div>
             
             <Button 
-              onClick={() => setShowKeyInput(false)}
+              onClick={() => {
+                localStorage.setItem('langsy_elevenlabs_key', elevenLabsKey);
+                setShowKeyInput(false);
+              }}
               disabled={!elevenLabsKey.trim()}
               className="w-full"
             >
@@ -352,7 +410,7 @@ const AdaptivePlacementTest = () => {
 
           <div className="mb-6">
             <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Question {currentQuestion + 1} of {Math.min(questions.length, 5)}</span>
+              <span>Question {currentQuestion + 1} of {Math.min(questions.length, 8)}</span>
               <span>{Math.round(progress)}% Complete</span>
             </div>
             <Progress value={progress} className="h-2" />
@@ -405,10 +463,22 @@ const AdaptivePlacementTest = () => {
                   </Button>
                   
                   {hasRecorded && (
-                    <Button variant="outline" onClick={() => setHasRecorded(false)}>
-                      <RotateCcw className="w-4 h-4" />
-                      Re-record
-                    </Button>
+                    <>
+                      <Button variant="outline" onClick={() => {
+                        setHasRecorded(false);
+                        setRecordedAudio(null);
+                      }}>
+                        <RotateCcw className="w-4 h-4" />
+                        Re-record
+                      </Button>
+
+                      {recordedAudio && (
+                        <Button variant="outline" onClick={playRecordedAudio}>
+                          <Play className="w-4 h-4" />
+                          Play Recording
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -431,6 +501,7 @@ const AdaptivePlacementTest = () => {
                 setCurrentQuestion(currentQuestion - 1);
                 setHasRecorded(false);
                 setIsRecording(false);
+                setRecordedAudio(null);
               }}
             >
               Previous
@@ -439,9 +510,9 @@ const AdaptivePlacementTest = () => {
             <Button 
               onClick={handleNext}
               disabled={!hasRecorded}
-              variant={currentQuestion >= 4 ? "success" : "default"}
+              variant={currentQuestion >= 7 ? "success" : "default"}
             >
-              {currentQuestion >= 4 ? "Complete Test" : "Next Question"}
+              {currentQuestion >= 7 ? "Complete Test" : "Next Question"}
             </Button>
           </div>
         </Card>

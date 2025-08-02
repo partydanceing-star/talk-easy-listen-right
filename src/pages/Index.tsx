@@ -16,7 +16,7 @@ const Index = () => {
       case "dashboard":
         return <ProgressDashboard />;
       default:
-        return <Hero />;
+        return <Hero onStartPlacementTest={() => setCurrentView("placement")} />;
     }
   };
 

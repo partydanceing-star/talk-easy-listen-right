@@ -3,7 +3,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mic, MessageSquare, TrendingUp, Zap } from "lucide-react";
 
-const Hero = () => {
+interface HeroProps {
+  onStartPlacementTest?: () => void;
+}
+
+const Hero = ({ onStartPlacementTest }: HeroProps) => {
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
       <div className="max-w-6xl mx-auto text-center text-white">
@@ -24,7 +28,12 @@ const Hero = () => {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <Button variant="hero" size="lg" className="bg-white text-primary hover:bg-white/90">
+          <Button 
+            variant="hero" 
+            size="lg" 
+            className="bg-white text-primary hover:bg-white/90"
+            onClick={onStartPlacementTest}
+          >
             <Mic className="w-5 h-5" />
             Start Your Placement Test
           </Button>
