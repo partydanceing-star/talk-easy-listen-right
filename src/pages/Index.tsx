@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Hero from "@/components/Hero";
-import PlacementTest from "@/components/PlacementTest";
+import AdaptivePlacementTest from "@/components/AdaptivePlacementTest";
 import ConversationPractice from "@/components/ConversationPractice";
 import ProgressDashboard from "@/components/ProgressDashboard";
 
@@ -10,7 +10,7 @@ const Index = () => {
   const renderView = () => {
     switch (currentView) {
       case "placement":
-        return <PlacementTest />;
+        return <AdaptivePlacementTest />;
       case "practice":
         return <ConversationPractice />;
       case "dashboard":
